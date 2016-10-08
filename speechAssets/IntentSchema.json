@@ -1,0 +1,32 @@
+{
+    "intents": [
+	{
+	    "intent":"RemindListIntent"
+	},
+	{
+	    "intent": "RemindIntent",
+	    "slots": [
+		{
+		    "name": "Drug",
+		    "type": "LIST_OF_DRUGS"
+		},
+		{
+		    "name": "Time",
+		    "type": "AMAZON.TIME"
+		}
+	    ]
+	},
+        {
+	    "intent": "DURIntent",
+	    "slots": [
+		{
+		    "name": "Drug",
+		    "type": "LIST_OF_DRUGS"
+		}
+	    ]
+	},
+	{
+	    "intent": "AMAZON.CancelIntent"
+	}
+    ]
+}

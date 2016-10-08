@@ -1,0 +1,5 @@
+RemindIntent remind me to take {Drug} at {Time}
+DURIntent is {Drug} safe to take
+DURIntent should I take {Drug}
+DURIntent can I eat {Drug}
+ReminderListIntent what are my reminders
