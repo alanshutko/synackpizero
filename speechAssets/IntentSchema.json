@@ -1,7 +1,7 @@
 {
     "intents": [
 	{
-	    "intent":"RemindListIntent"
+	    "intent":"ReminderListIntent"
 	},
 	{
 	    "intent": "RemindIntent",
@@ -27,6 +27,18 @@
 	},
 	{
 	    "intent": "AMAZON.CancelIntent"
+	},
+	{
+	    "intent": "HowDoYouWorkIntent"
+	},
+	{
+	    "intent": "SayReminderIntent",
+	    "slots": [
+		{
+		    "name": "Drug",
+		    "type": "LIST_OF_DRUGS"
+		}
+	    ]
 	}
     ]
 }

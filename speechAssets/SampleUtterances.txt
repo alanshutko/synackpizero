@@ -3,3 +3,5 @@ DURIntent is {Drug} safe to take
 DURIntent should I take {Drug}
 DURIntent can I eat {Drug}
 ReminderListIntent what are my reminders
+HowDoYouWorkIntent How do you work
+SayReminderIntent say reminder {Drug}

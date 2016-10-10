@@ -1,3 +1,5 @@
+"use strict";
+
 // Route the incoming request based on type (LaunchRequest, IntentRequest,
 // etc.) The JSON body of the request is provided in the event parameter.
 exports.handler = function (event, context) {
@@ -83,7 +85,15 @@ function onIntent(intentRequest, session, callback) {
         handleRemindRequest(intent, session, callback);
     } else if ("DURIntent" === intentName) {
         handleDURRequest(intent, session, callback);
-    }  else {
+    } else if ("ReminderListIntent" === intentName) {
+	handleReminderListIntent(intent, session, callback)
+    } else if ("HowDoYouWorkIntent" === intentName) {
+	handleHowDoYouWorkIntent(intent, session, callback)
+    } else if ("SayReminderIntent" === intentName) {
+	handleSayReminderIntent(intent, session, callback)
+    }
+
+    else {
         throw "Invalid intent";
     }
 }
@@ -110,7 +120,8 @@ function getWelcomeResponse(callback) {
 
     sessionAttributes = {
         "speechOutput": speechOutput,
-        "repromptText": speechOutput
+        "repromptText": "",
+	"reminders": []
     };
     callback(sessionAttributes,
         buildSpeechletResponse(CARD_TITLE, speechOutput, repromptText, shouldEndSession));
@@ -122,12 +133,72 @@ function handleRemindRequest(intent, session, callback) {
     var sessionAttributes = {};
     var userGaveUp = intent.name === "DontKnowIntent";
 
-    speechOutput = "I'm sorry, reminders are not supported yet..",
+    let reminder = { drug: intent.slots.Drug.value,
+		     time: intent.slots.Time.value }
 
+    let reminders = session.attributes.reminders
+
+    if (reminders === undefined) {
+	reminders = [ reminder ]
+    } else {
+	reminders.push(reminder)
+    }
+
+    let drugs = session.attributes.drugs
+    if (drugs === undefined) {
+	drugs = [ reminder.drug ]
+    } else {
+	drugs.push(reminder.drug)
+    }
+
+    speechOutput = `I will remind you to take ${reminder.drug} at ${reminder.time}.`
 
     sessionAttributes = {
         "speechOutput": speechOutput,
-        "repromptText": speechOutput,
+        "repromptText": "",
+	"reminders" : reminders,
+	"drugs": drugs
+    };
+
+    let directives = {
+        "header": {
+            "namespace": "Alerts",
+            "name": "SetAlert",
+        },
+        "payload": {
+            "type": "{{STRING}}",
+            "scheduledTime": "{{STRING}}"
+        }
+    }
+    callback(sessionAttributes,
+             buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false));
+
+}
+
+function handleReminderListIntent(intent, session, callback) {
+    var speechOutput = "";
+    var sessionAttributes = {};
+    var userGaveUp = intent.name === "DontKnowIntent";
+
+    let reminders = session.attributes.reminders
+
+    if (reminders === undefined ||
+	reminders.length === 0) {
+	speechOutput = "You have no reminders set."
+    } else {
+	console.log(reminders)
+	speechOutput = "These are your current reminders. "
+	for (let reminder in reminders) {
+	    let r = reminders[reminder]
+	    speechOutput += `${r.drug}, at ${r.time}. `
+	}
+    }
+
+    sessionAttributes = {
+        "speechOutput": speechOutput,
+        "repromptText": "",
+	"drugs": session.attributes.drugs,
+	"reminders": session.attributes.reminders
     };
     callback(sessionAttributes,
              buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false));
@@ -135,12 +206,49 @@ function handleRemindRequest(intent, session, callback) {
 }
 
 const handleDURRequest = (intent, session, callback) => {
-    var speechOutput = "No, this is terribly dangerous!"
-    var sessionAttributes = {};
+    const interactions = {
+	"grapefruit" : [ "simvastatin" ],
+	"digoxin" : [ "quinidine" ],
+	"quinidine" : [ "digoxin"],
+	"sildenafil" : [ "nitroglycerine" ],
+	"nitroglycerine" : [ "sildenafil" ]
+    }
 
-    callback(sessionAttributes,
+    var speechOutput = "That is safe to take with your other medications."
+
+
+    let interactionDrugs = interactions[intent.slots.Drug.value]
+    for (let drugIdx in interactionDrugs) {
+	let drug = interactionDrugs[drugIdx]
+	console.log(drug)
+	console.log(session.attributes.drugs)
+	if (session.attributes && session.attributes.drugs.indexOf(drug) >= 0) {
+	    speechOutput = `No, taking ${drug} with ${intent.slots.Drug.value} can cause serious side effects. Talk to your doctor first.`
+	}
+    }
+
+    callback(session.attributes,
 	     buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false))
 }
+
+const handleSayReminderIntent = (intent, session, callback) => {
+    var speechOutput = `It is time to take your ${intent.slots.Drug.value}`
+
+
+    let interactionDrugs = interactions[intent.slots.Drug.value]
+    for (let drugIdx in interactionDrugs) {
+	let drug = interactionDrugs[drugIdx]
+	console.log(drug)
+	console.log(session.attributes.drugs)
+	if (session.attributes && session.attributes.drugs.indexOf(drug) >= 0) {
+	    speechOutput = `No, taking ${drug} with ${intent.slots.Drug.value} can cause serious side effects. Talk to your doctor first.`
+	}
+    }
+
+    callback(session.attributes,
+	     buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false))
+}
+
 
 function handleRepeatRequest(intent, session, callback) {
     // Repeat the previous speechOutput and repromptText from the session attributes if available
@@ -153,47 +261,23 @@ function handleRepeatRequest(intent, session, callback) {
     }
 }
 
-function handleGetHelpRequest(intent, session, callback) {
-    // Provide a help prompt for the user, explaining how the game is played. Then, continue the game
-    // if there is one in progress, or provide the option to start another one.
-
-    // Ensure that session.attributes has been initialized
-    if (!session.attributes) {
-        session.attributes = {};
-    }
-
-    // Set a flag to track that we're in the Help state.
-    session.attributes.userPromptedToContinue = true;
-
-    // Do not edit the help dialogue. This has been created by the Alexa team to demonstrate best practices.
-
-    var speechOutput = "I will ask you " + GAME_LENGTH + " multiple choice questions. Respond with the number of the answer. "
-        + "For example, say one, two, three, or four. To start a new game at any time, say, start game. "
-        + "To repeat the last question, say, repeat. "
-        + "Would you like to keep playing?",
-        repromptText = "To give an answer to a question, respond with the number of the answer . "
-        + "Would you like to keep playing?";
-        var shouldEndSession = false;
-    callback(session.attributes,
-        buildSpeechletResponseWithoutCard(speechOutput, repromptText, shouldEndSession));
-}
-
 function handleFinishSessionRequest(intent, session, callback) {
     // End the session with a "Good bye!" if the user wants to quit the game
     callback(session.attributes,
         buildSpeechletResponseWithoutCard("Good bye!", "", true));
 }
 
-function isAnswerSlotValid(intent) {
-    var answerSlotFilled = intent.slots && intent.slots.Answer && intent.slots.Answer.value;
-    var answerSlotIsInt = answerSlotFilled && !isNaN(parseInt(intent.slots.Answer.value));
-    return answerSlotIsInt && parseInt(intent.slots.Answer.value) < (ANSWER_COUNT + 1) && parseInt(intent.slots.Answer.value) > 0;
+const handleHowDoYouWorkIntent = (intent, session, callback) => {
+    var speechOutput = "I'm sorry, but the Express Scripts lawyers have advised me not to answer."
+    var sessionAttributes = {}
+    callback(sessionAttributes,
+        buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false));
 }
 
 // ------- Helper functions to build responses -------
 
 
-function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
+function buildSpeechletResponse(title, output, repromptText, shouldEndSession, directives) {
     return {
         outputSpeech: {
             type: "PlainText",
@@ -204,12 +288,7 @@ function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
             title: title,
             content: output
         },
-        reprompt: {
-            outputSpeech: {
-                type: "PlainText",
-                text: repromptText
-            }
-        },
+	directive: directives
         shouldEndSession: shouldEndSession
     };
 }
@@ -220,13 +299,7 @@ function buildSpeechletResponseWithoutCard(output, repromptText, shouldEndSessio
             type: "PlainText",
             text: output
         },
-        reprompt: {
-            outputSpeech: {
-                type: "PlainText",
-                text: repromptText
-            }
-        },
-        shouldEndSession: shouldEndSession
+	shouldEndSession: shouldEndSession
     };
 }
 
