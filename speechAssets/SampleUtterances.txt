@@ -5,3 +5,11 @@ DURIntent can I eat {Drug}
 ReminderListIntent what are my reminders
 HowDoYouWorkIntent How do you work
 SayReminderIntent say reminder {Drug}
+DrugInfoIntent what are the {InfoSpec} for {Drug}
+
+side effects
+directions
+warnings
+
+when is the next dose
+how many refills

@@ -124,7 +124,7 @@ function getWelcomeResponse(callback) {
 	"reminders": []
     };
     callback(sessionAttributes,
-        buildSpeechletResponse(CARD_TITLE, speechOutput, repromptText, shouldEndSession));
+        buildSpeechletResponse(CARD_TITLE, speechOutput, "", shouldEndSession));
 }
 
 function handleRemindRequest(intent, session, callback) {
@@ -160,16 +160,6 @@ function handleRemindRequest(intent, session, callback) {
 	"drugs": drugs
     };
 
-    let directives = {
-        "header": {
-            "namespace": "Alerts",
-            "name": "SetAlert",
-        },
-        "payload": {
-            "type": "{{STRING}}",
-            "scheduledTime": "{{STRING}}"
-        }
-    }
     callback(sessionAttributes,
              buildSpeechletResponse(CARD_TITLE, speechOutput, speechOutput, false));
 
@@ -222,7 +212,7 @@ const handleDURRequest = (intent, session, callback) => {
 	let drug = interactionDrugs[drugIdx]
 	console.log(drug)
 	console.log(session.attributes.drugs)
-	if (session.attributes && session.attributes.drugs.indexOf(drug) >= 0) {
+	if (session.attributes && session.attributes.drugs && session.attributes.drugs.indexOf(drug) >= 0) {
 	    speechOutput = `No, taking ${drug} with ${intent.slots.Drug.value} can cause serious side effects. Talk to your doctor first.`
 	}
     }
@@ -288,7 +278,6 @@ function buildSpeechletResponse(title, output, repromptText, shouldEndSession, d
             title: title,
             content: output
         },
-	directive: directives
         shouldEndSession: shouldEndSession
     };
 }
